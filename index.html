@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DGXO - Alias Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg2: #111113;
+    --bg3: #18181c;
+    --border: #ffffff0f;
+    --border2: #ffffff1a;
+    --text: #e8e8ec;
+    --muted: #6b6b78;
+    --accent: #7c6af7;
+    --accent2: #a78bfa;
+    --green: #4ade80;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --accent-dim: #7c6af720;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; min-height: 100vh; line-height: 1.5; overflow-x: hidden; }
+  
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 2rem; position: relative; z-index: 1; }
+
+  /* Header */
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+  .logo-wrapper { display: flex; align-items: baseline; gap: 12px; }
+  .logo-area .small { font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+  .logo-area h1 { font-size: 1.8rem; font-weight: 600; }
+  .logo-area h1 span { color: var(--accent2); }
+  .badge-os { 
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 2px 8px; 
+    border-radius: 4px; background: var(--accent-dim); border: 1px solid var(--accent); 
+    color: var(--accent2); font-weight: 700; text-transform: uppercase;
+  }
+
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .social-links { display: flex; gap: 15px; align-items: center; border-right: 1px solid var(--border2); padding-right: 20px; }
+  .social-links a { color: var(--muted); transition: 0.2s; text-decoration: none; font-size: 18px; }
+  .social-links a:hover { color: var(--accent2); transform: translateY(-2px); }
+
+  .lang-switcher { display: flex; background: var(--bg2); border: 1px solid var(--border2); border-radius: 6px; overflow: hidden; }
+  .lang-btn { 
+    padding: 4px 10px; font-size: 10px; font-family: 'JetBrains Mono', monospace; 
+    cursor: pointer; background: transparent; border: none; color: var(--muted); transition: 0.2s;
+  }
+  .lang-btn.active { background: var(--accent); color: white; }
+
+  .actions { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    padding: 8px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border2);
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; transition: 0.2s; background: var(--bg2); color: var(--text);
+  }
+  .btn:hover { background: var(--bg3); border-color: var(--accent); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); font-weight: 500; }
+
+  .storage-indicator {
+    color: var(--amber); cursor: pointer; font-size: 16px; margin-right: 10px;
+    animation: pulse 2s infinite; display: flex; align-items: center; gap: 6px;
+  }
+  @keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* Toolbar */
+  .toolbar { display: flex; gap: 1rem; margin-bottom: 2rem; }
+  .search-box { flex: 1; position: relative; }
+  .search-box input {
+    width: 100%; background: var(--bg2); border: 1px solid var(--border2);
+    padding: 12px 16px; border-radius: 10px; color: var(--text); font-family: inherit; outline: none;
+  }
+
+  /* Grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.2rem; }
+  .card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.2rem; transition: 0.2s; display: flex; flex-direction: column; height: 100%;
+  }
+  .card:hover { border-color: var(--border2); transform: translateY(-2px); }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .alias-tag { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--green); font-weight: 600; }
+  .cat-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--bg3); color: var(--muted); border: 1px solid var(--border); }
+
+  .cmd-line {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; background: var(--bg);
+    padding: 10px; border-radius: 6px; color: var(--text); border: 1px solid var(--border);
+    margin-bottom: 12px; cursor: pointer; position: relative; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cmd-line:hover { border-color: var(--accent); }
+
+  .card-desc { font-size: 13px; color: var(--muted); flex-grow: 1; margin-bottom: 16px; }
+
+  .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 12px; }
+  .tags { display: flex; gap: 4px; }
+  .tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--border2); color: var(--text); font-family: 'JetBrains Mono', monospace; }
+  .tag.danger { color: var(--red); border: 1px solid #f8717140; }
+
+  .card-actions button { background: none; border: none; color: var(--muted); cursor: pointer; margin-left: 10px; font-size: 14px; transition: 0.2s; }
+  .card-actions button:hover { color: var(--text); }
+
+  /* Modals */
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  .modal-content { background: var(--bg2); padding: 2rem; border-radius: 16px; border: 1px solid var(--border2); width: 100%; max-width: 500px; position: relative; }
+  .form-group { margin-bottom: 1.2rem; }
+  .form-group label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
+  .form-group input, .form-group textarea {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border2); padding: 12px; border-radius: 8px; color: var(--text); font-family: inherit; outline: none;
+  }
+
+  .warning-icon { font-size: 3rem; color: var(--amber); margin-bottom: 1rem; }
+  .modal-content.warning { text-align: center; }
+  .modal-content.warning p { margin-bottom: 1rem; color: var(--muted); font-size: 14px; }
+
+  #toast {
+    position: fixed; bottom: 20px; right: 20px; background: var(--accent); color: white;
+    padding: 12px 24px; border-radius: 8px; font-size: 13px; transform: translateY(100px); transition: 0.3s ease; z-index: 1000;
+  }
+  #toast.show { transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="modal" id="welcomeModal">
+  <div class="modal-content warning">
+    <div class="warning-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h2 id="txt-welcome-title">Data Storage Notice</h2>
+    <p id="txt-welcome-p1">Semua alias disimpan secara lokal di browser ini saja.</p>
+    <p id="txt-welcome-p2" style="font-weight: 600; color: var(--text);">Biasakan klik Backup rutin agar data tidak hilang saat hapus cache atau pindah perangkat!</p>
+    <button class="btn btn-primary" id="txt-welcome-btn" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="closeWelcome()">I Understand</button>
+  </div>
+</div>
+
+<div class="container">
+  <header>
+    <div class="logo-wrapper">
+      <div class="logo-area">
+        <div class="small">Made with love by DGXO</div>
+        <h1>al<span>man</span>.dgxo.my.id</h1>
+      </div>
+      <div class="badge-os">Open Source</div>
+    </div>
+    
+    <div class="header-right">
+      <div class="social-links">
+        <a href="https://github.com/DGameGT/aliasmanager" target="_blank" title="GitHub Repository">
+          <i class="fa-brands fa-github"></i>
+        </a>
+        <a href="https://link.dgxo.my.id/" target="_blank" title="My Website">
+          <i class="fa-solid fa-globe"></i>
+        </a>
+      </div>
+      <div class="actions">
+        <div class="lang-switcher">
+          <button class="lang-btn" id="lang-en" onclick="changeLang('en')">EN</button>
+          <button class="lang-btn" id="lang-id" onclick="changeLang('id')">ID</button>
+        </div>
+
+        <div class="storage-indicator" title="Local Storage Active - Click for info" onclick="showWelcome()">
+          <i class="fa-solid fa-database"></i>
+          <i class="fa-solid fa-circle-exclamation" style="font-size: 10px; margin-left: -8px; vertical-align: top;"></i>
+        </div>
+        
+        <button class="btn" id="btn-backup" onclick="exportJSON()">Backup</button>
+        <button class="btn" id="btn-restore" onclick="document.getElementById('importFile').click()">Restore</button>
+        <input type="file" id="importFile" style="display:none" onchange="importJSON(event)" accept=".json">
+        <button class="btn btn-primary" id="btn-add" onclick="openModal()">+ Add New</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search..." oninput="render()">
+    </div>
+  </div>
+
+  <div class="grid" id="mainGrid"></div>
+</div>
+
+<div class="modal" id="aliasModal">
+  <div class="modal-content">
+    <h2 id="modalTitle" style="margin-bottom: 1.5rem;">New Alias</h2>
+    <input type="hidden" id="editIndex" value="">
+    <div class="form-group">
+      <label id="lbl-cat">Category</label>
+      <input type="text" id="inCat" placeholder="Git, System, AI...">
+    </div>
+    <div class="form-group">
+      <label id="lbl-name">Alias Name</label>
+      <input type="text" id="inName" placeholder="gs">
+    </div>
+    <div class="form-group">
+      <label id="lbl-cmd">Full Command</label>
+      <input type="text" id="inCmd" placeholder="git status">
+    </div>
+    <div class="form-group">
+      <label id="lbl-desc">Description</label>
+      <textarea id="inDesc" rows="3"></textarea>
+    </div>
+    <div style="display: flex; gap: 10px; margin-top: 1rem;">
+      <button class="btn btn-primary" id="btn-save" style="flex: 1" onclick="saveAlias()">Save Alias</button>
+      <button class="btn" id="btn-cancel" style="flex: 1" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">Copied!</div>
+
+<script>
+// Dictionary
+const i18n = {
+  en: {
+    welcomeTitle: "Data Storage Notice",
+    welcomeP1: "All aliases are stored locally in this browser only.",
+    welcomeP2: "Please Backup regularly to avoid data loss when clearing cache or switching devices!",
+    welcomeBtn: "I Understand",
+    backup: "Backup",
+    restore: "Restore",
+    addNew: "+ Add New",
+    search: "Search by name, command, or description...",
+    modalNew: "New Alias",
+    modalEdit: "Edit Alias",
+    labelCat: "Category",
+    labelName: "Alias Name",
+    labelCmd: "Full Command",
+    labelDesc: "Description",
+    btnSave: "Save Alias",
+    btnCancel: "Cancel",
+    toastCopy: "Copied to clipboard!",
+    confirmDel: "Delete this alias?",
+    importErr: "Invalid JSON file!",
+    noDesc: "No description provided."
+  },
+  id: {
+    welcomeTitle: "Pemberitahuan Penyimpanan",
+    welcomeP1: "Semua alias disimpan secara lokal di browser ini saja.",
+    welcomeP2: "Biasakan klik Backup rutin agar data tidak hilang saat hapus cache atau pindah perangkat!",
+    welcomeBtn: "Saya Mengerti",
+    backup: "Cadangkan",
+    restore: "Pulihkan",
+    addNew: "+ Tambah Baru",
+    search: "Cari berdasarkan nama, perintah, atau deskripsi...",
+    modalNew: "Alias Baru",
+    modalEdit: "Edit Alias",
+    labelCat: "Kategori",
+    labelName: "Nama Alias",
+    labelCmd: "Perintah Lengkap",
+    labelDesc: "Deskripsi",
+    btnSave: "Simpan Alias",
+    btnCancel: "Batal",
+    toastCopy: "Berhasil disalin!",
+    confirmDel: "Hapus alias ini?",
+    importErr: "File JSON tidak valid!",
+    noDesc: "Tidak ada deskripsi."
+  }
+};
+
+let currentLang = localStorage.getItem('language') || 'en';
+
+const fullAliasList = [
+  { cat: "who am i ?:)", name: "im", cmd: "whoami", desc: "Who Am I? :)" }
+];
+
+let aliases = JSON.parse(localStorage.getItem('urlocalstoragename')) || fullAliasList;
+
+function changeLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('language', lang);
+  updateStaticTexts();
+  render();
+}
+
+function updateStaticTexts() {
+  const t = i18n[currentLang];
+  // Header & Buttons
+  document.getElementById('btn-backup').innerText = t.backup;
+  document.getElementById('btn-restore').innerText = t.restore;
+  document.getElementById('btn-add').innerText = t.addNew;
+  document.getElementById('searchInput').placeholder = t.search;
+  
+  // Welcome Modal
+  document.getElementById('txt-welcome-title').innerText = t.welcomeTitle;
+  document.getElementById('txt-welcome-p1').innerText = t.welcomeP1;
+  document.getElementById('txt-welcome-p2').innerText = t.welcomeP2;
+  document.getElementById('txt-welcome-btn').innerText = t.welcomeBtn;
+
+  // Form Modal
+  document.getElementById('lbl-cat').innerText = t.labelCat;
+  document.getElementById('lbl-name').innerText = t.labelName;
+  document.getElementById('lbl-cmd').innerText = t.labelCmd;
+  document.getElementById('lbl-desc').innerText = t.labelDesc;
+  document.getElementById('btn-save').innerText = t.btnSave;
+  document.getElementById('btn-cancel').innerText = t.btnCancel;
+
+  // Update button active state
+  document.getElementById('lang-en').classList.toggle('active', currentLang === 'en');
+  document.getElementById('lang-id').classList.toggle('active', currentLang === 'id');
+}
+
+function saveToLocal() {
+  localStorage.setItem('urlocalstoragename', JSON.stringify(aliases));
+  render();
+}
+
+function render() {
+  const grid = document.getElementById('mainGrid');
+  const term = document.getElementById('searchInput').value.toLowerCase();
+  const t = i18n[currentLang];
+  grid.innerHTML = '';
+
+  // Filter yang lebih kebal error (kalau JSON lama ga ada desc/cat, dia ga bakal crash)
+  aliases.filter(a => {
+    const matchName = (a.name || '').toLowerCase().includes(term);
+    const matchCmd  = (a.cmd || '').toLowerCase().includes(term);
+    const matchCat  = (a.cat || '').toLowerCase().includes(term);
+    const matchDesc = (a.desc || '').toLowerCase().includes(term);
+    return matchName || matchCmd || matchCat || matchDesc;
+  }).forEach((item, index) => {
+    const cmdStr = item.cmd || '';
+    const isSudo = cmdStr.includes('sudo');
+    const isDanger = cmdStr.includes('rm ') || cmdStr.includes('kill') || cmdStr.includes('down');
+    
+    // Fallback teks kalau kosong
+    const safeName = item.name || 'Unnamed';
+    const safeCat = item.cat || 'General';
+    const safeDesc = item.desc || t.noDesc;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="alias-tag">${safeName}</span>
+        <span class="cat-badge">${safeCat}</span>
+      </div>
+      <div class="cmd-line" onclick="copyToClipboard('${cmdStr}')">${cmdStr}</div>
+      <div class="card-desc">${safeDesc}</div>
+      <div class="card-footer">
+        <div class="tags">
+          ${isSudo ? '<span class="tag danger">SUDO</span>' : ''}
+          ${isDanger ? '<span class="tag danger">DANGER</span>' : ''}
+          <span class="tag">#${safeCat.toLowerCase()}</span>
+        </div>
+        <div class="card-actions">
+          <button title="Edit" onclick="editAlias(${index})"><i class="fa-solid fa-pencil"></i></button>
+          <button title="Delete" onclick="deleteAlias(${index})"><i class="fa-solid fa-trash-can"></i></button>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function openModal() {
+  document.getElementById('modalTitle').innerText = i18n[currentLang].modalNew;
+  document.getElementById('editIndex').value = '';
+  document.querySelectorAll('#aliasModal input, #aliasModal textarea').forEach(i => i.value = '');
+  document.getElementById('aliasModal').style.display = 'flex';
+}
+
+function closeModal() { document.getElementById('aliasModal').style.display = 'none'; }
+
+function showWelcome() { document.getElementById('welcomeModal').style.display = 'flex'; }
+
+function closeWelcome() {
+  localStorage.setItem('welcome_shown', 'true');
+  document.getElementById('welcomeModal').style.display = 'none';
+}
+
+function saveAlias() {
+  const index = document.getElementById('editIndex').value;
+  const newData = {
+    cat: document.getElementById('inCat').value || 'General',
+    name: document.getElementById('inName').value,
+    cmd: document.getElementById('inCmd').value,
+    desc: document.getElementById('inDesc').value
+  };
+
+  if(!newData.name || !newData.cmd) return alert('Name and Command are required!');
+
+  if(index === "") {
+    aliases.push(newData);
+  } else {
+    aliases[index] = newData;
+  }
+
+  saveToLocal();
+  closeModal();
+}
+
+function editAlias(index) {
+  const data = aliases[index];
+  document.getElementById('modalTitle').innerText = i18n[currentLang].modalEdit;
+  document.getElementById('editIndex').value = index;
+  document.getElementById('inCat').value = data.cat;
+  document.getElementById('inName').value = data.name;
+  document.getElementById('inCmd').value = data.cmd;
+  document.getElementById('inDesc').value = data.desc || '';
+  document.getElementById('aliasModal').style.display = 'flex';
+}
+
+function deleteAlias(index) {
+  if(confirm(i18n[currentLang].confirmDel)) {
+    aliases.splice(index, 1);
+    saveToLocal();
+  }
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(aliases, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'alias_manager_backup.json';
+  a.click();
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  
+  reader.onload = (e) => {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      
+      if (Array.isArray(importedData)) {
+        // "Cuci" datanya biar bersih dan seragam
+        aliases = importedData.map(item => ({
+          cat: item.cat || 'General',
+          name: item.name || 'Unnamed',
+          cmd: item.cmd || '',
+          desc: item.desc || ''
+        }));
+
+        saveToLocal(); // Otomatis manggil render() yg baru
+        
+        const toast = document.getElementById('toast');
+        toast.innerText = currentLang === 'en' ? "Restore successful!" : "Berhasil dipulihkan!";
+        toast.className = 'show';
+        setTimeout(() => toast.className = '', 2000);
+      } else {
+        alert(i18n[currentLang].importErr);
+      }
+    } catch(err) {
+      console.error(err);
+      alert(i18n[currentLang].importErr);
+    }
+    
+    // Reset input biar bisa import file yg sama berkali-kali
+    event.target.value = '';
+  };
+  
+  reader.readAsText(file);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateStaticTexts();
+  if (!localStorage.getItem('welcome_shown')) {
+    showWelcome();
+  }
+  render();
+});
+</script>
+</body>
+</html>
